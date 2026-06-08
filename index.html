@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KykyAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'
+    import { getDatabase, ref, set, get, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js'
+    const app = initializeApp({
+      apiKey: "AIzaSyDEOV1PMgvRi_pt2X_BADTY2oM1TqpCG4I",
+      authDomain: "kykyai.firebaseapp.com",
+      projectId: "kykyai",
+      storageBucket: "kykyai.firebasestorage.app",
+      messagingSenderId: "541826929682",
+      appId: "1:541826929682:web:dca13248abce22b14b74cb",
+      databaseURL: "https://kykyai-default-rtdb.firebaseio.com"
+    })
+    const db = getDatabase(app)
+    window._fb = { db, ref, set, get, onValue, remove }
+    window.dispatchEvent(new Event('firebase-ready'))
+  </script>
+
+  <style>
+    :root {
+      --bg:#0d0d0f; --bg2:#141418; --bg3:#1c1c22; --border:#2a2a35;
+      --accent:#7c6af7; --accent2:#a78bfa; --green:#34d399;
+      --text:#e2e2e8; --muted:#6b6b7b; --user-bg:#1e1b35;
+      --ia-bg:#131318; --danger:#f87171; --code-accent:#f97316;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+    /* HEADER */
+    header{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;gap:10px}
+    .logo{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;letter-spacing:-.5px}
+    .logo-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
+    .hbtns{display:flex;gap:7px;align-items:center}
+    .hbtn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 11px;border-radius:7px;font-family:'Syne',sans-serif;font-size:11px;cursor:pointer;transition:all .2s;white-space:nowrap}
+    .hbtn:hover{border-color:var(--accent);color:var(--accent2)}
+    .fb-badge{font-size:10px;padding:3px 8px;border-radius:5px;background:var(--bg3);color:var(--muted)}
+    .fb-badge.ok{background:#0f2a1a;color:var(--green)}
+
+    /* MODE TABS (Général / Code) */
+    .mode-bar{display:flex;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;padding:0 18px;gap:2px}
+    .mode-tab{padding:9px 18px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;transition:all .2s;display:flex;align-items:center;gap:6px}
+    .mode-tab:hover{color:var(--text)}
+    .mode-tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+    .mode-tab.code-tab.active{color:var(--code-accent);border-bottom-color:var(--code-accent)}
+    .mode-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700}
+    .mode-tab.active .mode-badge{background:rgba(124,106,247,.2);color:var(--accent2)}
+    .mode-tab.code-tab.active .mode-badge{background:rgba(249,115,22,.15);color:var(--code-accent)}
+
+    /* API SETUP SCREEN */
+    .api-setup{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center}
+    .api-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:36px 40px;width:440px;max-width:95vw;text-align:center}
+    .api-card h2{font-size:22px;font-weight:800;margin-bottom:8px}
+    .api-card p{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6}
+    .api-card input{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%;margin-bottom:12px;transition:border-color .2s}
+    .api-card input:focus{border-color:var(--accent)}
+    .api-card .save-btn{background:var(--accent);border:none;color:white;padding:11px;border-radius:8px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;width:100%;transition:background .2s}
+    .api-card .save-btn:hover{background:var(--accent2)}
+    .api-card .hint{font-size:11px;color:var(--muted);margin-top:12px}
+    .api-card .hint a{color:var(--accent2);text-decoration:none}
+    .api-err{color:var(--danger);font-size:12px;margin-top:8px;display:none}
+
+    /* LAYOUT */
+    .main{display:flex;flex:1;overflow:hidden}
+
+    /* SIDEBAR */
+    .sidebar{width:290px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:width .3s;overflow:hidden}
+    .sidebar.collapsed{width:0;border:none}
+    .stabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+    .stab{flex:1;padding:9px 5px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;text-align:center;border:none;background:none;transition:all .2s;border-bottom:2px solid transparent}
+    .stab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+    .spanel{display:none;flex:1;flex-direction:column;overflow:hidden}
+    .spanel.active{display:flex}
+    .panel-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);flex-shrink:0}
+    .panel-body{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px}
+    .panel-body::-webkit-scrollbar{width:3px}
+    .panel-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+    /* KNOWLEDGE CARDS */
+    .kcard{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .2s;position:relative;padding-right:44px}
+    .kcard:hover{border-color:var(--accent)}
+    .kcard.active{border-color:var(--accent);background:#1a1830}
+    .kcard-name{font-size:12px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .kcard-meta{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ktype{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;margin-bottom:3px;font-weight:600}
+    .ktype.text{background:#1a2a1a;color:#4ade80}
+    .ktype.image{background:#1a1a2a;color:#818cf8}
+    .ktoggle{position:absolute;top:10px;right:10px;width:24px;height:14px;background:var(--border);border-radius:7px;cursor:pointer;transition:background .2s;flex-shrink:0}
+    .ktoggle.on{background:var(--accent)}
+    .ktoggle::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:white;transition:transform .2s}
+    .ktoggle.on::after{transform:translateX(10px)}
+    .addbtn{background:transparent;border:1px dashed var(--border);border-radius:8px;padding:10px;color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;cursor:pointer;transition:all .2s;text-align:center;width:100%}
+    .addbtn:hover{border-color:var(--accent);color:var(--accent2)}
+
+    /* CHAT HISTORY */
+    .csession{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;transition:all .2s;position:relative;padding-right:28px}
+    .csession:hover{border-color:var(--accent)}
+    .csession.cur{border-color:var(--accent);background:#1a1830}
+    .csession-title{font-size:11px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .csession-meta{font-size:10px;color:var(--muted)}
+    .cdel{position:absolute;top:7px;right:7px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;padding:2px}
+    .cdel:hover{color:var(--danger)}
+
+    /* CHAT */
+    .chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .messages{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+    .messages::-webkit-scrollbar{width:3px}
+    .messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+    /* WELCOME */
+    .welcome{text-align:center;padding:40px 20px;color:var(--muted)}
+    .welcome h2{font-size:24px;font-weight:800;color:var(--text);margin-bottom:8px}
+    .welcome p{font-size:13px;margin-bottom:18px}
+    .suggestions{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+    .sbtn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:18px;font-family:'Syne',sans-serif;font-size:11px;cursor:pointer;transition:all .2s}
+    .sbtn:hover{border-color:var(--accent);color:var(--accent2)}
+    .sbtn.code{border-color:rgba(249,115,22,.3);}
+    .sbtn.code:hover{border-color:var(--code-accent);color:var(--code-accent)}
+
+    /* MESSAGES */
+    .message{display:flex;gap:9px;animation:fi .22s ease}
+    @keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+    .message.user{flex-direction:row-reverse}
+    .avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+    .avatar.ia{background:linear-gradient(135deg,var(--accent),#4f46e5)}
+    .avatar.ia.code-mode{background:linear-gradient(135deg,var(--code-accent),#c2410c)}
+    .avatar.user{background:var(--bg3);border:1px solid var(--border)}
+    .bubble{max-width:78%;padding:11px 14px;border-radius:12px;font-size:13px;line-height:1.7;word-break:break-word}
+    .message.ia .bubble{background:var(--ia-bg);border:1px solid var(--border);border-top-left-radius:4px}
+    .message.user .bubble{background:var(--user-bg);border:1px solid #2d2850;border-top-right-radius:4px}
+
+    /* FIX SAUTS DE LIGNE : le texte normal ne doit pas avoir de <br> excessifs */
+    .bubble p{margin-bottom:8px}
+    .bubble p:last-child{margin-bottom:0}
+
+    /* CODE DANS BULLES */
+    .bubble pre{margin:10px 0;border-radius:7px;overflow:hidden;position:relative}
+    .bubble pre code{font-family:'JetBrains Mono',monospace!important;font-size:12px!important;line-height:1.5!important}
+    .copybtn{position:absolute;top:5px;right:5px;background:rgba(255,255,255,.1);border:none;color:var(--muted);padding:2px 7px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Syne',sans-serif;transition:all .2s}
+    .copybtn:hover{background:rgba(255,255,255,.2);color:var(--text)}
+    .bubble code:not(pre code){background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent2)}
+    .bubble strong{color:var(--accent2);font-weight:600}
+    .bubble ul,.bubble ol{padding-left:18px;margin:6px 0}
+    .bubble li{margin-bottom:3px}
+    .bubble h3{font-size:13px;font-weight:700;margin:10px 0 4px;color:var(--accent2)}
+
+    .typing{display:flex;gap:4px;padding:11px 14px;background:var(--ia-bg);border:1px solid var(--border);border-radius:12px;border-top-left-radius:4px;width:fit-content}
+    .typing span{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:bounce 1.2s ease-in-out infinite}
+    .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+    @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
+
+    /* INPUT */
+    .input-area{padding:10px 18px 14px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+    .input-wrap{display:flex;gap:8px;align-items:flex-end;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:8px 11px;transition:border-color .2s}
+    .input-wrap:focus-within{border-color:var(--accent)}
+    .input-wrap.code-mode:focus-within{border-color:var(--code-accent)}
+    #user-input{flex:1;background:none;border:none;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;resize:none;outline:none;line-height:1.5;max-height:110px;min-height:21px}
+    #user-input::placeholder{color:var(--muted)}
+    .sendbtn{background:var(--accent);border:none;color:white;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+    .sendbtn.code-mode{background:var(--code-accent)}
+    .sendbtn:hover{filter:brightness(1.15);transform:scale(1.05)}
+    .sendbtn:disabled{background:var(--border);cursor:not-allowed;transform:none;filter:none}
+    .input-hint{font-size:10px;color:var(--muted);margin-top:5px;text-align:center}
+
+    /* MODAL */
+    .moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center}
+    .moverlay.open{display:flex}
+    .modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:560px;max-width:95vw;max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+    .mhdr{padding:13px 17px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:13px;flex-shrink:0}
+    .mbody{padding:16px;display:flex;flex-direction:column;gap:10px;flex:1;overflow-y:auto}
+    .mftr{padding:11px 17px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:7px;flex-shrink:0}
+    .modal input[type="text"]{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:7px;font-family:'Syne',sans-serif;font-size:12px;outline:none;transition:border-color .2s;width:100%}
+    .modal input[type="text"]:focus{border-color:var(--accent)}
+    .modal textarea{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:11px;border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:none;height:200px;outline:none;line-height:1.6;transition:border-color .2s;width:100%}
+    .modal textarea:focus{border-color:var(--accent)}
+    .btn{padding:7px 14px;border-radius:7px;font-family:'Syne',sans-serif;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+    .btn-cancel{background:var(--bg3);color:var(--muted);border:1px solid var(--border)}.btn-cancel:hover{color:var(--text)}
+    .btn-save{background:var(--accent);color:white}.btn-save:hover{background:var(--accent2)}
+    .btn-del{background:transparent;color:var(--danger);border:1px solid var(--danger)}.btn-del:hover{background:rgba(248,113,113,.1)}
+    .cbtn{background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer;line-height:1}.cbtn:hover{color:var(--text)}
+    .lbl{font-size:10px;color:var(--muted);margin-bottom:3px}
+    .ttabs{display:flex;gap:6px}
+    .ttab{flex:1;padding:6px;border-radius:6px;font-family:'Syne',sans-serif;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--muted);text-align:center;transition:all .2s}
+    .ttab.active{border-color:var(--accent);color:var(--accent2);background:#16133a}
+    .upzone{border:2px dashed var(--border);border-radius:8px;padding:18px;text-align:center;cursor:pointer;transition:all .2s;color:var(--muted);font-size:11px}
+    .upzone:hover,.upzone.drag{border-color:var(--accent);color:var(--accent2);background:#16133a}
+    .upzone input{display:none}
+    .upprev{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 11px;font-size:11px;color:var(--green);display:none;align-items:center;gap:7px}
+    .btn-danger-sm{background:transparent;border:1px solid var(--danger);color:var(--danger);padding:3px 9px;border-radius:5px;font-family:'Syne',sans-serif;font-size:10px;cursor:pointer}
+    .btn-danger-sm:hover{background:rgba(248,113,113,.1)}
+  </style>
+</head>
+<body>
+
+<!-- ÉCRAN SETUP CLÉ API (affiché si pas de clé dans Firebase) -->
+<div class="api-setup" id="api-setup">
+  <div class="api-card">
+    <div style="font-size:36px;margin-bottom:12px;">🔑</div>
+    <h2>Configurer KykyAI</h2>
+    <p>Entre ta clé API Groq pour activer l'IA.<br>Elle sera sauvegardée dans Firebase et utilisée automatiquement.</p>
+    <input type="password" id="setup-key" placeholder="gsk_xxxxxxxxxxxxxxxxxxxx" onkeydown="if(event.key==='Enter')saveSetupKey()">
+    <button class="save-btn" onclick="saveSetupKey()">Activer KykyAI</button>
+    <div class="api-err" id="api-err">⚠️ La clé doit commencer par gsk_</div>
+    <div class="hint">Clé gratuite sur <a href="https://console.groq.com" target="_blank">console.groq.com</a></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo"><div class="logo-dot"></div>KykyAI</div>
+  <div class="hbtns">
+    <span class="fb-badge" id="fb-badge">...</span>
+    <button class="hbtn" onclick="newChat()">+ Chat</button>
+    <button class="hbtn" onclick="toggleSidebar()">📚 Docs</button>
+  </div>
+</header>
+
+<!-- MODE TABS -->
+<div class="mode-bar">
+  <button class="mode-tab active" id="tab-general" onclick="setMode('general')">
+    💬 Général <span class="mode-badge">IA</span>
+  </button>
+  <button class="mode-tab code-tab" id="tab-code" onclick="setMode('code')">
+    💻 Code <span class="mode-badge">DEV</span>
+  </button>
+</div>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="stabs">
+      <button class="stab active" onclick="switchTab('docs',this)">📄 Docs</button>
+      <button class="stab" onclick="switchTab('history',this)">💬 Chats</button>
+    </div>
+    <div class="spanel active" id="spanel-docs">
+      <div class="panel-hdr">
+        <span id="active-count">0 actif(s)</span>
+        <button style="background:var(--accent);border:none;color:white;padding:3px 9px;border-radius:5px;font-family:'Syne',sans-serif;font-size:10px;font-weight:600;cursor:pointer;" onclick="openModal()">+ Ajouter</button>
+      </div>
+      <div class="panel-body" id="knowledge-list"></div>
+    </div>
+    <div class="spanel" id="spanel-history">
+      <div class="panel-hdr">
+        <span>Historique</span>
+        <button class="btn-danger-sm" onclick="clearAllChats()">Tout vider</button>
+      </div>
+      <div class="panel-body" id="chat-history-list"></div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <h2>Bonjour 👋</h2>
+        <p id="welcome-sub">Pose-moi n'importe quelle question !</p>
+        <div class="suggestions" id="welcome-suggestions">
+          <button class="sbtn" onclick="sendSuggestion(this)">C'est quoi l'intelligence artificielle ?</button>
+          <button class="sbtn" onclick="sendSuggestion(this)">Explique-moi le machine learning</button>
+          <button class="sbtn" onclick="sendSuggestion(this)">Aide-moi à rédiger un email</button>
+          <button class="sbtn" onclick="sendSuggestion(this)">Résume ce concept : API REST</button>
+        </div>
+      </div>
+    </div>
+    <div class="input-area">
+      <div class="input-wrap" id="input-wrap">
+        <textarea id="user-input" placeholder="Pose ta question..." rows="1"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="sendbtn" id="send-btn" onclick="sendMessage()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hint" id="input-hint">Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DOCS -->
+<div class="moverlay" id="modal">
+  <div class="modal">
+    <div class="mhdr">
+      <span id="modal-title">Nouvelle connaissance</span>
+      <button class="cbtn" onclick="closeModal()">×</button>
+    </div>
+    <div class="mbody">
+      <div><div class="lbl">Titre</div>
+        <input type="text" id="modal-name" placeholder="Ex: Mes conventions CSS, Doc Firebase...">
+      </div>
+      <div><div class="lbl">Type</div>
+        <div class="ttabs">
+          <div class="ttab active" onclick="setType('text',this)">📝 Texte / Code</div>
+          <div class="ttab" onclick="setType('file',this)">📎 Fichier</div>
+        </div>
+      </div>
+      <div id="pane-text" style="display:flex;flex-direction:column;gap:5px;">
+        <div class="lbl">Contenu</div>
+        <textarea id="modal-content" placeholder="Colle ici ton code, ta doc, tes règles, des exemples..."></textarea>
+      </div>
+      <div id="pane-file" style="display:none;">
+        <div class="lbl" style="margin-bottom:7px;">Fichiers : .txt .md .js .py .html .css .json .png .jpg .jpeg .gif .webp</div>
+        <div class="upzone" id="upzone"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event)">
+          <input type="file" id="file-input" accept=".txt,.md,.js,.py,.html,.css,.json,.png,.jpg,.jpeg,.gif,.webp" onchange="handleFileSelect(event)">
+          📂 Glisse ton fichier ici ou <span style="color:var(--accent2);cursor:pointer;text-decoration:underline;" onclick="document.getElementById('file-input').click()">clique pour choisir</span>
+        </div>
+        <div class="upprev" id="upprev"><span id="upname"></span></div>
+      </div>
+    </div>
+    <div class="mftr">
+      <button class="btn btn-del" id="modal-del" onclick="deleteKnowledge()" style="display:none;margin-right:auto;">Supprimer</button>
+      <button class="btn btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-save" onclick="saveKnowledge()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+const MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'
+
+let apiKey = ''
+let currentMode = 'general' // 'general' | 'code'
+let knowledgeBase = []
+let conversationHistory = []
+let currentChatId = null
+let editingId = null
+let currentType = 'text'
+let pendingFile = null
+let fbReady = false
+
+// ══════════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════════
+window.addEventListener('firebase-ready', async () => {
+  fbReady = true
+  document.getElementById('fb-badge').textContent = 'Firebase ✓'
+  document.getElementById('fb-badge').className = 'fb-badge ok'
+
+  // Charger la clé API depuis Firebase
+  const snap = await window._fb.get(fb('config/groqKey'))
+  if (snap.exists()) {
+    apiKey = snap.val()
+    document.getElementById('api-setup').style.display = 'none'
+  }
+  // else : l'écran setup reste visible
+
+  listenKnowledge()
+  listenChatHistory()
+})
+
+const fb = (path) => window._fb.ref(window._fb.db, path)
+
+// ── SETUP CLÉ API ──
+async function saveSetupKey() {
+  const val = document.getElementById('setup-key').value.trim()
+  const err = document.getElementById('api-err')
+  if (!val.startsWith('gsk_')) { err.style.display='block'; return }
+  err.style.display='none'
+  await window._fb.set(fb('config/groqKey'), val)
+  apiKey = val
+  document.getElementById('api-setup').style.display = 'none'
+}
+
+// ══════════════════════════════════════════
+// MODE GÉNÉRAL / CODE
+// ══════════════════════════════════════════
+function setMode(mode) {
+  currentMode = mode
+  const isCode = mode === 'code'
+
+  document.getElementById('tab-general').classList.toggle('active', !isCode)
+  document.getElementById('tab-code').classList.toggle('active', isCode)
+
+  const wrap = document.getElementById('input-wrap')
+  const btn = document.getElementById('send-btn')
+  wrap.classList.toggle('code-mode', isCode)
+  btn.classList.toggle('code-mode', isCode)
+
+  // Mettre à jour le placeholder
+  document.getElementById('user-input').placeholder = isCode
+    ? 'Pose ta question de code...'
+    : 'Pose ta question...'
+
+  // Mettre à jour le welcome si visible
+  const welcomeSub = document.getElementById('welcome-sub')
+  const suggestions = document.getElementById('welcome-suggestions')
+  if (welcomeSub) {
+    if (isCode) {
+      welcomeSub.textContent = 'Mode Code activé — pose tes questions techniques !'
+      suggestions.innerHTML = `
+        <button class="sbtn code" onclick="sendSuggestion(this)">Comment faire une boucle en JS ?</button>
+        <button class="sbtn code" onclick="sendSuggestion(this)">Explique async/await</button>
+        <button class="sbtn code" onclick="sendSuggestion(this)">Différence var, let, const ?</button>
+        <button class="sbtn code" onclick="sendSuggestion(this)">Comment faire un fetch API ?</button>
+      `
+    } else {
+      welcomeSub.textContent = 'Pose-moi n\'importe quelle question !'
+      suggestions.innerHTML = `
+        <button class="sbtn" onclick="sendSuggestion(this)">C'est quoi l'intelligence artificielle ?</button>
+        <button class="sbtn" onclick="sendSuggestion(this)">Explique-moi le machine learning</button>
+        <button class="sbtn" onclick="sendSuggestion(this)">Aide-moi à rédiger un email</button>
+        <button class="sbtn" onclick="sendSuggestion(this)">Résume ce concept : API REST</button>
+      `
+    }
+  }
+
+  // Nouveau chat au changement de mode
+  newChat()
+}
+
+// ══════════════════════════════════════════
+// CONNAISSANCE
+// ══════════════════════════════════════════
+function listenKnowledge() {
+  window._fb.onValue(fb('knowledge'), (snap) => {
+    const data = snap.val()
+    knowledgeBase = data ? Object.entries(data).map(([id,v]) => ({id,...v})) : []
+    renderKnowledge()
+  })
+}
+
+function renderKnowledge() {
+  const list = document.getElementById('knowledge-list')
+  const n = knowledgeBase.filter(k=>k.active).length
+  document.getElementById('active-count').textContent = `${n} actif(s)`
+  if (!knowledgeBase.length) {
+    list.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:11px;padding:16px;">Aucune connaissance.<br>Ajoute ta doc ici !</div><button class="addbtn" onclick="openModal()">+ Ajouter</button>`
+    return
+  }
+  list.innerHTML = knowledgeBase.map(k => `
+    <div class="kcard ${k.active?'active':''}" onclick="editKnowledge('${k.id}')">
+      <span class="ktype ${k.type==='image'?'image':'text'}">${k.type==='image'?'image':'texte'}</span>
+      <div class="kcard-name">${esc(k.name)}</div>
+      <div class="kcard-meta">${k.type==='image'?'[Image]':esc((k.content||'').substring(0,55).replace(/\n/g,' '))}...</div>
+      <div class="ktoggle ${k.active?'on':''}" onclick="toggleK(event,'${k.id}',${!!k.active})"></div>
+    </div>`).join('') + `<button class="addbtn" onclick="openModal()">+ Ajouter</button>`
+}
+
+function toggleK(e, id, cur) {
+  e.stopPropagation()
+  window._fb.set(fb(`knowledge/${id}/active`), !cur)
+}
+
+// ══════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════
+function openModal(id=null) {
+  editingId=id; pendingFile=null; currentType='text'
+  document.getElementById('modal-del').style.display = id?'block':'none'
+  document.getElementById('modal-title').textContent = id?'Modifier':'Nouvelle connaissance'
+  document.getElementById('upprev').style.display='none'
+  document.querySelectorAll('.ttab').forEach((t,i)=>t.classList.toggle('active',i===0))
+  showPane('text')
+  if (id) {
+    const k = knowledgeBase.find(k=>k.id===id)
+    document.getElementById('modal-name').value = k.name
+    document.getElementById('modal-content').value = k.type==='image'?'':(k.content||'')
+  } else {
+    document.getElementById('modal-name').value=''
+    document.getElementById('modal-content').value=''
+  }
+  document.getElementById('modal').classList.add('open')
+}
+function editKnowledge(id){openModal(id)}
+function closeModal(){document.getElementById('modal').classList.remove('open');editingId=null}
+function setType(t,el){currentType=t;document.querySelectorAll('.ttab').forEach(x=>x.classList.remove('active'));el.classList.add('active');showPane(t)}
+function showPane(t){document.getElementById('pane-text').style.display=t==='text'?'flex':'none';document.getElementById('pane-file').style.display=t==='file'?'block':'none'}
+
+function handleDrop(e){e.preventDefault();document.getElementById('upzone').classList.remove('drag');if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0])}
+function handleFileSelect(e){if(e.target.files[0])processFile(e.target.files[0])}
+function processFile(file) {
+  const reader = new FileReader()
+  const isImg = file.type.startsWith('image/')
+  reader.onload = (e) => {
+    pendingFile={name:file.name,type:isImg?'image':'text',content:e.target.result}
+    document.getElementById('upname').textContent=`✓ ${file.name} (${Math.round(file.size/1024)} Ko)`
+    document.getElementById('upprev').style.display='flex'
+    if (!document.getElementById('modal-name').value)
+      document.getElementById('modal-name').value=file.name.replace(/\.[^.]+$/,'')
+  }
+  isImg?reader.readAsDataURL(file):reader.readAsText(file,'UTF-8')
+}
+
+async function saveKnowledge() {
+  const name=document.getElementById('modal-name').value.trim()
+  if(!name){alert('Donne un titre !');return}
+  let content='',type='text'
+  if(currentType==='file'){if(!pendingFile){alert('Sélectionne un fichier !');return}content=pendingFile.content;type=pendingFile.type}
+  else{content=document.getElementById('modal-content').value.trim();if(!content){alert('Le contenu est vide !');return}}
+  const id=editingId||Date.now().toString()
+  await window._fb.set(fb(`knowledge/${id}`),{name,content,type,active:true,createdAt:Date.now()})
+  closeModal()
+}
+async function deleteKnowledge(){if(!confirm('Supprimer ?'))return;await window._fb.remove(fb(`knowledge/${editingId}`));closeModal()}
+
+// ══════════════════════════════════════════
+// SYSTEM PROMPTS
+// ══════════════════════════════════════════
+function buildSystem() {
+  const active = knowledgeBase.filter(k=>k.active)
+
+  let sys = currentMode === 'code'
+    ? `Tu es KykyAI en mode Code, un assistant expert en développement web et programmation.
+Tu réponds UNIQUEMENT aux questions de code et de développement.
+Si la question n'est pas technique, dis poliment que tu es en mode Code et invite à basculer en mode Général.
+Tu réponds toujours en français.
+Tu donnes du code propre avec une explication courte et claire.
+IMPORTANT : utilise TOUJOURS des blocs de code avec le bon langage (\`\`\`js, \`\`\`python, etc.).
+Ne saute JAMAIS de ligne inutile entre les lignes de code. Le code doit être compact et lisible.`
+    : `Tu es KykyAI, un assistant IA généraliste intelligent et sympathique.
+Tu peux répondre à toutes les questions : culture générale, science, aide à la rédaction, explications, conseils, etc.
+Si quelqu'un pose une question de code, réponds brièvement mais suggère de basculer en mode Code (onglet en haut) pour une aide plus spécialisée.
+Tu réponds toujours en français.
+Tu es clair, concis et utile.`
+
+  if (active.length) {
+    sys += `\n\n═══ BASE DE CONNAISSANCE ═══\nUtilise ces ressources si pertinentes :\n\n`
+    active.forEach(k => {
+      sys += k.type==='image'
+        ? `### ${k.name} [IMAGE]\n\n`
+        : `### ${k.name}\n${k.content}\n\n`
+    })
+    sys += `═══════════════════════════`
+  }
+  return sys
+}
+
+function buildMessages() {
+  const imgs = knowledgeBase.filter(k=>k.active&&k.type==='image')
+  if (!imgs.length) return conversationHistory
+  return conversationHistory.map((msg,i) => {
+    if (i===0&&msg.role==='user') {
+      return {role:'user',content:[
+        ...imgs.map(img=>({type:'image_url',image_url:{url:img.content}})),
+        {type:'text',text:typeof msg.content==='string'?msg.content:''}
+      ]}
+    }
+    return msg
+  })
+}
+
+// ══════════════════════════════════════════
+// CHAT
+// ══════════════════════════════════════════
+async function sendMessage() {
+  const input = document.getElementById('user-input')
+  const msg = input.value.trim()
+  if (!msg) return
+  if (!apiKey) { alert('Configure d\'abord ta clé API !'); return }
+
+  const welcome = document.getElementById('welcome')
+  if (welcome) welcome.remove()
+
+  appendMsg('user', msg)
+  input.value=''; autoResize(input)
+  document.getElementById('send-btn').disabled=true
+
+  const tid = showTyping()
+  conversationHistory.push({role:'user',content:msg})
+
+  try {
+    const res = await fetch(GROQ_URL, {
+      method:'POST',
+      headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:MODEL,
+        messages:[{role:'system',content:buildSystem()},...buildMessages()],
+        temperature: currentMode==='code' ? 0.3 : 0.7,
+        max_tokens:2048
+      })
+    })
+    if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||`HTTP ${res.status}`) }
+    const data = await res.json()
+    const reply = data.choices[0].message.content
+    conversationHistory.push({role:'assistant',content:reply})
+    removeTyping(tid)
+    appendMsg('ia', reply)
+    saveChat()
+  } catch(err) {
+    removeTyping(tid)
+    appendMsg('ia', `❌ Erreur : ${err.message}`)
+  }
+  document.getElementById('send-btn').disabled=false
+}
+
+function sendSuggestion(btn){document.getElementById('user-input').value=btn.textContent;sendMessage()}
+
+// ══════════════════════════════════════════
+// RENDU MESSAGES — FIX SAUTS DE LIGNE
+// ══════════════════════════════════════════
+function appendMsg(role, content) {
+  const msgs = document.getElementById('messages')
+  const div = document.createElement('div')
+  div.className=`message ${role}`
+  const av = document.createElement('div')
+  av.className=`avatar ${role}${role==='ia'&&currentMode==='code'?' code-mode':''}`
+  av.textContent=role==='ia'?(currentMode==='code'?'💻':'🤖'):'👤'
+  const bub = document.createElement('div')
+  bub.className='bubble'
+  bub.innerHTML = fmtMsg(content)
+  div.appendChild(av); div.appendChild(bub); msgs.appendChild(div)
+  div.querySelectorAll('pre code').forEach(block => {
+    hljs.highlightElement(block)
+    const btn=document.createElement('button')
+    btn.className='copybtn'; btn.textContent='Copier'
+    btn.onclick=()=>{navigator.clipboard.writeText(block.textContent);btn.textContent='✓ Copié!';setTimeout(()=>btn.textContent='Copier',2000)}
+    block.parentElement.style.position='relative'
+    block.parentElement.appendChild(btn)
+  })
+  msgs.scrollTop=msgs.scrollHeight
+}
+
+function fmtMsg(raw) {
+  // 1. Extraire les blocs de code pour les protéger
+  const codeBlocks = []
+  let text = raw.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    // FIX : ne pas modifier les sauts de ligne dans le code
+    codeBlocks.push({ lang: lang||'', code: code })
+    return `%%CODE_BLOCK_${codeBlocks.length-1}%%`
+  })
+
+  // 2. Formater le texte (markdown léger)
+  // Titres
+  text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>')
+  text = text.replace(/^## (.+)$/gm, '<h3>$1</h3>')
+  // Gras
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+  // Italique
+  text = text.replace(/\*(.*?)\*/g, '<em>$1</em>')
+  // Code inline
+  text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>')
+  // Listes à puces
+  text = text.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+  text = text.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+  // Listes numérotées
+  text = text.replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+
+  // 3. Convertir les paragraphes (double saut de ligne)
+  // Séparer les blocs
+  const parts = text.split(/\n{2,}/)
+  text = parts.map(part => {
+    part = part.trim()
+    if (!part) return ''
+    // Déjà un tag HTML
+    if (part.startsWith('<') || part.startsWith('%%CODE')) return part
+    // Simple saut de ligne à l'intérieur d'un para → <br>
+    part = part.replace(/\n/g, '<br>')
+    return `<p>${part}</p>`
+  }).join('')
+
+  // 4. Réinjecter les blocs de code
+  text = text.replace(/%%CODE_BLOCK_(\d+)%%/g, (_, i) => {
+    const {lang, code} = codeBlocks[parseInt(i)]
+    return `<pre><code class="${esc(lang)}">${esc(code.trimEnd())}</code></pre>`
+  })
+
+  return text
+}
+
+function showTyping() {
+  const msgs=document.getElementById('messages')
+  const id='t'+Date.now()
+  const div=document.createElement('div')
+  div.className='message ia'; div.id=id
+  div.innerHTML=`<div class="avatar ia${currentMode==='code'?' code-mode':''}">${currentMode==='code'?'💻':'🤖'}</div><div class="typing"><span></span><span></span><span></span></div>`
+  msgs.appendChild(div); msgs.scrollTop=msgs.scrollHeight
+  return id
+}
+function removeTyping(id){const el=document.getElementById(id);if(el)el.remove()}
+
+// ══════════════════════════════════════════
+// HISTORIQUE CHATS
+// ══════════════════════════════════════════
+function newChat() {
+  currentChatId=null; conversationHistory=[]
+  document.getElementById('messages').innerHTML=`
+    <div class="welcome" id="welcome">
+      <h2>${currentMode==='code'?'Mode Code 💻':'Bonjour 👋'}</h2>
+      <p id="welcome-sub">${currentMode==='code'?'Pose tes questions techniques !':'Pose-moi n\'importe quelle question !'}</p>
+      <div class="suggestions" id="welcome-suggestions">
+        ${currentMode==='code'
+          ? `<button class="sbtn code" onclick="sendSuggestion(this)">Comment faire une boucle en JS ?</button>
+             <button class="sbtn code" onclick="sendSuggestion(this)">Explique async/await</button>
+             <button class="sbtn code" onclick="sendSuggestion(this)">Différence var, let, const ?</button>`
+          : `<button class="sbtn" onclick="sendSuggestion(this)">C'est quoi l'IA ?</button>
+             <button class="sbtn" onclick="sendSuggestion(this)">Aide-moi à rédiger un email</button>
+             <button class="sbtn" onclick="sendSuggestion(this)">Explique-moi une notion complexe</button>`
+        }
+      </div>
+    </div>`
+}
+
+function listenChatHistory() {
+  window._fb.onValue(fb('chats'), (snap) => {
+    const data=snap.val()
+    const list=document.getElementById('chat-history-list')
+    if (!data){list.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:11px;padding:20px;">Aucun chat.</div>`;return}
+    const chats=Object.entries(data).map(([id,v])=>({id,...v})).sort((a,b)=>b.updatedAt-a.updatedAt)
+    list.innerHTML=chats.map(c=>`
+      <div class="csession ${c.id===currentChatId?'cur':''}" onclick="loadChat('${c.id}')">
+        <button class="cdel" onclick="deleteChat(event,'${c.id}')">×</button>
+        <div class="csession-title">${esc(c.title||'Chat')}</div>
+        <div class="csession-meta">${new Date(c.updatedAt).toLocaleDateString('fr-FR')} · ${(c.messages||[]).length} msg · ${c.mode==='code'?'💻':'💬'}</div>
+      </div>`).join('')
+  })
+}
+
+async function saveChat() {
+  if (!fbReady||!conversationHistory.length) return
+  const id=currentChatId||Date.now().toString()
+  currentChatId=id
+  const first=conversationHistory[0]?.content
+  const title=(typeof first==='string'?first:first?.[0]?.text||'Chat').substring(0,50)
+  await window._fb.set(fb(`chats/${id}`),{title,messages:conversationHistory,mode:currentMode,updatedAt:Date.now()})
+}
+
+async function loadChat(id) {
+  const snap=await window._fb.get(fb(`chats/${id}`))
+  const data=snap.val(); if(!data)return
+  currentChatId=id; conversationHistory=data.messages||[]
+  if (data.mode) { currentMode=data.mode; setModeUI(data.mode) }
+  document.getElementById('messages').innerHTML=''
+  conversationHistory.forEach(msg=>{
+    const role=msg.role==='user'?'user':'ia'
+    const txt=typeof msg.content==='string'?msg.content:(msg.content?.find?.(c=>c.type==='text')?.text||'')
+    appendMsg(role,txt)
+  })
+}
+
+function setModeUI(mode) {
+  const isCode=mode==='code'
+  document.getElementById('tab-general').classList.toggle('active',!isCode)
+  document.getElementById('tab-code').classList.toggle('active',isCode)
+  document.getElementById('input-wrap').classList.toggle('code-mode',isCode)
+  document.getElementById('send-btn').classList.toggle('code-mode',isCode)
+  document.getElementById('user-input').placeholder=isCode?'Pose ta question de code...':'Pose ta question...'
+}
+
+async function deleteChat(e,id){e.stopPropagation();await window._fb.remove(fb(`chats/${id}`));if(currentChatId===id)newChat()}
+async function clearAllChats(){if(!confirm('Vider tout l\'historique ?'))return;await window._fb.remove(fb('chats'));newChat()}
+
+// ══════════════════════════════════════════
+// UI UTILS
+// ══════════════════════════════════════════
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('collapsed')}
+function switchTab(name,el){
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'))
+  document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('active'))
+  el.classList.add('active')
+  document.getElementById(`spanel-${name}`).classList.add('active')
+}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px'}
+function esc(t){if(!t)return'';return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+</script>
+</body>
+</html>
