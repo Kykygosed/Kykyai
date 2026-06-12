@@ -12,15 +12,17 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'
     import { getDatabase, ref, set, get, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js'
-    const app = initializeApp({
-      apiKey: "AIzaSyDEOV1PMgvRi_pt2X_BADTY2oM1TqpCG4I",
-      authDomain: "kykyai.firebaseapp.com",
-      projectId: "kykyai",
-      storageBucket: "kykyai.firebasestorage.app",
-      messagingSenderId: "541826929682",
-      appId: "1:541826929682:web:dca13248abce22b14b74cb",
-      databaseURL: "https://kykyai-default-rtdb.firebaseio.com"
-    })
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDFfUnu076ChN_Js0QYmaABdJJMOQbGv1Q",
+  authDomain: "kyky-4b748.firebaseapp.com",
+  databaseURL: "https://kyky-4b748-default-rtdb.firebaseio.com",
+  projectId: "kyky-4b748",
+  storageBucket: "kyky-4b748.firebasestorage.app",
+  messagingSenderId: "980205708455",
+  appId: "1:980205708455:web:b9125afa8028f65b042782",
+  measurementId: "G-HDMXRP2FP0"
+};
     const db = getDatabase(app)
     window._fb = { db, ref, set, get, onValue, remove }
     window.dispatchEvent(new Event('firebase-ready'))
